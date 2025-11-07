@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel de Administración - StreetZone</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background-color: #0a0a0a;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-box {
+      background: #111;
+      padding: 2rem;
+      border-radius: 20px;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+      width: 300px;
+      text-align: center;
+    }
+    input {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+    }
+    button {
+      background: #ff4444;
+      border: none;
+      color: white;
+      padding: 10px;
+      width: 100%;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #ff6666;
+    }
+    #msg {
+      margin-top: 10px;
+      font-size: 0.9em;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h2>StreetZone Admin</h2>
+    <input id="user" placeholder="Usuario" />
+    <input id="pass" placeholder="Contraseña" type="password" />
+    <button onclick="login()">Entrar</button>
+    <div id="msg"></div>
+  </div>
+
+  <script>
+    async function login() {
+      const username = document.getElementById("user").value;
+      const password = document.getElementById("pass").value;
+      const msg = document.getElementById("msg");
+
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem("token", data.token);
+        msg.textContent = "✅ Bienvenido, redirigiendo...";
+        setTimeout(() => {
+          window.location.href = "/dashboard.html";
+        }, 1500);
+      } else {
+        msg.textContent = "❌ Usuario o contraseña incorrectos";
+      }
+    }
+  </script>
+</body>
+</html>

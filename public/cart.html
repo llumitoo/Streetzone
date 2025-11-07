@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tu carrito | StreetZone</title>
+  <style>
+    body { background: #0a0a0a; color: white; font-family: "Poppins", sans-serif; text-align: center; }
+    img { width: 80px; border-radius: 10px; }
+    table { width: 80%; margin: 2rem auto; border-collapse: collapse; background: #111; }
+    th, td { padding: 10px; border-bottom: 1px solid #333; }
+    th { background: #222; }
+    button { background: #ff4444; border: none; padding: 10px; color: white; border-radius: 8px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>🛒 Tu carrito</h1>
+  <table id="cartTable">
+    <thead>
+      <tr><th>Imagen</th><th>Producto</th><th>Precio</th><th>Acción</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <h2 id="total"></h2>
+
+  <script>
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    function renderCart() {
+      const tbody = document.querySelector("#cartTable tbody");
+      tbody.innerHTML = "";
+      let total = 0;
+
+      cart.forEach((item, i) => {
+        total += item.price;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><img src="${item.image}" /></td>
+          <td>${item.name}</td>
+          <td>$${item.price}</td>
+          <td><button onclick="removeItem(${i})">❌</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("total").textContent = `Total: $${total}`;
+    }
+
+    function removeItem(index) {
+      cart.splice(index, 1);
+      localStorage.setItem("cart", JSON.stringify(cart));
+      renderCart();
+    }
+
+    renderCart();
+  </script>
+</body>
+</html>

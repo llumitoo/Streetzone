@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Panel de Administración | StreetZone</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      background-color: #0a0a0a;
+      color: #fff;
+      font-family: "Poppins", sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #ff4444;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      margin: 0;
+    }
+
+    header button {
+      background: black;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    main {
+      padding: 2rem;
+    }
+
+    .product-form {
+      background: #111;
+      padding: 1rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+    }
+
+    input, textarea {
+      width: 100%;
+      margin: 5px 0 10px;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: #222;
+      color: white;
+    }
+
+    button.add-btn {
+      width: 100%;
+      background: #ff4444;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #111;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #333;
+    }
+
+    th {
+      background: #222;
+    }
+
+    tr:hover {
+      background: #1a1a1a;
+    }
+
+    .actions button {
+      background: none;
+      border: none;
+      color: #ff4444;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+  </style>
+</head>
+<body>
+  <header>
+    <h1>StreetZone | Panel Admin</h1>
+    <button onclick="logout()">Cerrar sesión</button>
+  </header>
+
+<main>
+  <section class="product-form">
+    <h2>Agregar producto</h2>
+      <input id="name" placeholder="Nombre del producto" />
+      <input id="brand" placeholder="Marca" />
+      <input id="price" placeholder="Precio" type="number" />
+      <input id="image" type="file" accept="image/*" />
+<textarea id="description" placeholder="Descripción"></textarea>
+
+    <button class="add-btn" onclick="addProduct()">Agregar producto</button>
+  </section>
+
+  <h2>Inventario</h2>
+  <table id="productTable">
+    <thead>
+      <tr>
+        <th>Imagen</th>
+        <th>Nombre</th>
+        <th>Marca</th>
+        <th>Precio</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="inventoryBody"></tbody>
+  </table>
+</main>
+
+<script>
+async function addProduct() {
+  const name = document.getElementById("name").value.trim();
+  const brand = document.getElementById("brand").value.trim();
+  const price = document.getElementById("price").value.trim();
+  const imageInput = document.getElementById("image");
+  const description = document.getElementById("description").value.trim();
+
+  if (!name || !brand || !price || !description) {
+    alert("Completa todos los campos");
+    return;
+  }
+
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("Inicia sesión primero");
+    return;
+  }
+
+  // Enviar como FormData (permite archivos)
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("brand", brand);
+  formData.append("price", price);
+  formData.append("description", description);
+  if (imageInput.files[0]) formData.append("image", imageInput.files[0]);
+
+  try {
+    const response = await fetch("http://localhost:3000/api/products", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      alert("✅ Producto agregado correctamente");
+      loadInventory();
+      clearForm();
+    } else {
+      alert("❌ Error: " + (result.message || "Error desconocido"));
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Error de conexión con el servidor");
+  }
+}
+
+function toBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+}
+
+function clearForm() {
+  document.getElementById("name").value = "";
+  document.getElementById("brand").value = "";
+  document.getElementById("price").value = "";
+  document.getElementById("image").value = "";
+  document.getElementById("description").value = "";
+}
+
+async function loadInventory() {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  const response = await fetch("http://localhost:3000/api/products", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const products = await response.json();
+  const tbody = document.getElementById("inventoryBody");
+  tbody.innerHTML = "";
+
+  products.forEach((p) => {
+    const row = `
+      <tr>
+        <td><img src="${p.image}" alt="${p.name}" width="60"></td>
+        <td>${p.name}</td>
+        <td>${p.brand}</td>
+        <td>$${p.price}</td>
+        <td><button onclick="deleteProduct('${p._id}')">🗑️</button></td>
+      </tr>
+    `;
+    tbody.innerHTML += row;
+  });
+}
+
+async function deleteProduct(id) {
+  const token = localStorage.getItem("token");
+  if (!token) return alert("Inicia sesión primero");
+
+  const response = await fetch(`http://localhost:3000/api/products/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (response.ok) {
+    alert("🗑️ Producto eliminado");
+    loadInventory();
+  } else {
+    alert("❌ No se pudo eliminar el producto");
+  }
+}
+
+document.addEventListener("DOMContentLoaded", loadInventory);
+</script>
+</body>
+</html>
+
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("No tienes acceso. Inicia sesión primero.");
+      window.location.href = "/admin.html";
+    }
+
+async function loadProducts() {
+  const response = await fetch("/api/products");
+  const products = await response.json();
+
+  const tableBody = document.getElementById("inventoryBody");
+  tableBody.innerHTML = "";
+
+  products.forEach(p => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><img src="${p.image || 'https://via.placeholder.com/80'}" width="80" /></td>
+      <td>${p.name || 'Sin nombre'}</td>
+      <td>${p.brand || 'Sin marca'}</td>
+      <td>$${p.price || 0}</td>
+      <td>
+        <button onclick="editProduct('${p._id}')">✏️</button>
+        <button onclick="deleteProduct('${p._id}')">🗑️</button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+}
+
+async function addProduct() {
+const response = await fetch("/api/products");
+const formData = {
+  name: document.getElementById("name").value,
+  brand: document.getElementById("brand").value,
+  price: document.getElementById("price").value,
+  description: document.getElementById("description").value,
+  image: document.getElementById("image").files// o la ruta si usas multer
+  };
+await fetch("http://localhost:3000/api/products", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(formData)
+});
+  if (res.ok) {
+    alert("Producto agregado ✅");
+    loadProducts();
+  } else {
+    alert("Error al agregar producto ❌");
+  }
+}
+
+    async function deleteProduct(id) {
+      if (!confirm("¿Seguro que quieres eliminar este producto?")) return;
+
+      const response = await fetch(`/api/products/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        alert("Producto eliminado 🗑️");
+        loadProducts();
+      } else {
+        alert("Error al eliminar producto ❌");
+      }
+    }
+
+    async function editProduct(id) {
+      const nuevoPrecio = prompt("Nuevo precio:");
+      if (!nuevoPrecio) return;
+
+      const response = await fetch(`/api/products/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ price: nuevoPrecio })
+      });
+
+      if (response.ok) {
+        alert("Producto actualizado 💸");
+        loadProducts();
+      } else {
+        alert("Error al actualizar producto ❌");
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      window.location.href = "/admin.html";
+    }
+
+    loadProducts();
+  </script>
+</body>
+</html>
